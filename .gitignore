@@ -1,0 +1,8 @@
+node_modules/
+.wrangler/
+.dev.vars
+# A practice's own folder: its practice.json, client records, app checkouts and generated configurations.
+# These name clients and hold account ids, so they stay on the practitioner's machine (see the runbook).
+practice/
+.provisioned/
+archive/

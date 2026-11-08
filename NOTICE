@@ -1,0 +1,8 @@
+Triodian practice hub and client provisioning
+Copyright 2026 Triodian Pty Ltd
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+It has no bundled third-party components. When it runs, it uses the Triodian installer (Triodian/triodian-install,
+Apache 2.0), fetches the Triodian apps from GitHub and runs Wrangler (Cloudflare, Apache 2.0 or MIT) through npx;
+each app carries its own NOTICE.
