@@ -1,0 +1,53 @@
+{
+ "name": "practice-hub",
+ "main": "../../src/worker.js",
+ "compatibility_date": "2026-10-01",
+ "assets": {
+  "directory": "../../public",
+  "binding": "ASSETS",
+  "run_worker_first": true
+ },
+ "services": [
+  {
+   "binding": "S_ACME_RISK_APPETITE",
+   "service": "stub-risk-appetite-acme",
+   "entrypoint": "StatusService"
+  },
+  {
+   "binding": "S_ACME_USE_ASSESSMENT",
+   "service": "stub-use-assessment-acme",
+   "entrypoint": "StatusService"
+  },
+  {
+   "binding": "S_ACME_BOARD_DIRECTION",
+   "service": "stub-board-direction-acme",
+   "entrypoint": "StatusService"
+  },
+  {
+   "binding": "S_BOLT_RISK_APPETITE",
+   "service": "stub-risk-appetite-bolt",
+   "entrypoint": "StatusService"
+  },
+  {
+   "binding": "S_BOLT_BOARD_DIRECTION",
+   "service": "stub-board-direction-bolt",
+   "entrypoint": "StatusService"
+  },
+  {
+   "binding": "S_HARROW_BOARD_DIRECTION",
+   "service": "stub-board-direction-harrow",
+   "entrypoint": "StatusService"
+  },
+  {
+   "binding": "S_HARROW_CONFIDENTIALITY",
+   "service": "stub-confidentiality-harrow",
+   "entrypoint": "StatusService"
+  }
+ ],
+ "vars": {
+  "PRACTICE_NAME": "Kestrel Board Advisory (fictional)",
+  "HUB_ADMINS": "partner@kestrel.example.com",
+  "LOCAL_DEV_USER": "partner@kestrel.example.com",
+  "CLIENTS": "[{\"code\": \"acme\", \"name\": \"Acme Super (fictional)\", \"apps\": [{\"id\": \"risk-appetite\", \"name\": \"AI Risk Appetite\", \"url\": \"https://risk-appetite.acme.kestrel.example.com\", \"binding\": \"S_ACME_RISK_APPETITE\"}, {\"id\": \"use-assessment\", \"name\": \"AI Use Assessment\", \"url\": \"https://use-assessment.acme.kestrel.example.com\", \"binding\": \"S_ACME_USE_ASSESSMENT\"}, {\"id\": \"board-direction\", \"name\": \"AI Board Direction\", \"url\": \"https://board-direction.acme.kestrel.example.com\", \"binding\": \"S_ACME_BOARD_DIRECTION\"}]}, {\"code\": \"bolt\", \"name\": \"Bolt Mutual Bank (fictional)\", \"apps\": [{\"id\": \"risk-appetite\", \"name\": \"AI Risk Appetite\", \"url\": \"https://risk-appetite.bolt.kestrel.example.com\", \"binding\": \"S_BOLT_RISK_APPETITE\"}, {\"id\": \"board-direction\", \"name\": \"AI Board Direction\", \"url\": \"https://board-direction.bolt.kestrel.example.com\", \"binding\": \"S_BOLT_BOARD_DIRECTION\"}]}, {\"code\": \"harrow\", \"name\": \"Harrow Valley Foods (fictional)\", \"apps\": [{\"id\": \"board-direction\", \"name\": \"AI Board Direction\", \"url\": \"https://board-direction.harrow.kestrel.example.com\", \"binding\": \"S_HARROW_BOARD_DIRECTION\"}, {\"id\": \"confidentiality\", \"name\": \"AI Confidentiality Exposure\", \"url\": \"https://confidentiality.harrow.kestrel.example.com\", \"binding\": \"S_HARROW_CONFIDENTIALITY\"}]}]"
+ }
+}
