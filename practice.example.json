@@ -1,0 +1,9 @@
+{
+  "name": "Example Board Advisory",
+  "domain": "apps.example-advisory.com.au",
+  "teamDomain": "example-advisory.cloudflareaccess.com",
+  "admins": ["partner@example-advisory.com.au"],
+  "locationHint": "oc",
+  "appsDir": "apps",
+  "hubWorker": "practice-hub"
+}

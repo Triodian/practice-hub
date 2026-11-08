@@ -1,0 +1,8 @@
+{
+ "name": "stub-use-assessment-acme",
+ "main": "stub-app.js",
+ "compatibility_date": "2026-10-01",
+ "vars": {
+  "STUB_STAGE": "ua"
+ }
+}

@@ -1,0 +1,21 @@
+# Unit tests (no network, no Cloudflare account): the status filter, the hub's administrator check, and provisioning
+# against a fake account, including that a second run changes nothing. Uses the installer's main branch.
+name: Test
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { path: practice-hub }
+      - uses: actions/checkout@v4
+        with: { repository: Triodian/triodian-install, path: triodian-install }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm test
+        working-directory: practice-hub
