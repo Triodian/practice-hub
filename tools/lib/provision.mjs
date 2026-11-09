@@ -6,6 +6,9 @@ import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 
 export const STATUS_ENTRYPOINT = 'StatusService';
+
+/** The client's sign-in cookie name: tri_suite_<code>, hyphens as underscores. */
+export const sessionCookie = code => `tri_suite_${String(code).replace(/-/g, '_')}`;
 const hash = v => createHash('sha256').update(typeof v === 'string' ? v : JSON.stringify(v)).digest('hex').slice(0, 16);
 const SUB = { 'risk-appetite': 'risk-appetite', 'use-assessment': 'use-assessment', confidentiality: 'confidentiality', 'board-direction': 'board-direction' };
 
@@ -87,6 +90,10 @@ export async function provision(practice, input, deps) {
   log('· Each app\'s configuration');
   const a = { code, domain, teamDomain: practice.teamDomain, firstAdmins: [input.admin.toLowerCase()], dir: appsDir, jurisdiction: input.jurisdiction || 'AU', sector: input.sector || '' };
   const made = apps.map(app => ({ app, ...installer.clientConfig(app, a, ids) }));
+  // Each client's sign-in cookie has its own name. The cookie is scoped to <client>.<practice domain>, but a suite on a
+  // parent domain (the Triodian demo on triodian.com, or a practice's own) sets a cookie that browsers also send here;
+  // a shared name would let that cookie shadow this client's and break sign-in.
+  for (const m of made) m.config.vars = { ...m.config.vars, SUITE_SESSION_COOKIE: sessionCookie(input.code) };
   for (const m of made) {
     const text = JSON.stringify(m.config, null, 2) + '\n';
     if (fs.exists(m.file) && fs.read(m.file) === text) did(`configuration for ${m.app.name} unchanged`, false);
