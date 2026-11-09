@@ -39,6 +39,13 @@ test('an app that cannot answer is shown as such', async () => {
   assert.equal((await readStatus({ status: async () => { throw new Error('network'); } })).state, 'unreachable');
   assert.equal((await readStatus({ status: () => new Promise(() => {}) }, 20)).state, 'unreachable');
   assert.equal((await readStatus({ status: async () => ({ hello: 1 }) })).state, 'invalid');
+  // An app with other named entrypoints but no StatusService answers "internal error"; its Worker still serves /login.
+  const internal = { status: async () => { throw new Error('internal error; reference = abc123'); } };
+  const up = { fetch: async (u, o) => (new URL(u).pathname === '/login' && o.method === 'HEAD' ? new Response(null) : null) };
+  assert.equal((await readStatus(internal, 3000, 'S_X', up)).state, 'notReporting');
+  assert.equal((await readStatus(internal, 3000, 'S_X', { fetch: async () => { throw new Error('internal error'); } })).state, 'unreachable');
+  assert.equal((await readStatus(internal, 20, 'S_X', { fetch: () => new Promise(() => {}) })).state, 'unreachable');
+  assert.equal((await readStatus(internal)).state, 'unreachable', 'without the ping binding it cannot tell');
 });
 
 test('three clients, one with an app not reporting yet', async () => {

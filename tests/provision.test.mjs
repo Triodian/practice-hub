@@ -86,8 +86,9 @@ test('a first run stands up the client: databases with the location hint, config
   const hubAccess = acct.st.access.find(a => a.domain === 'hub.kestrel.example.com');
   assert.deepEqual(hubAccess.policies[0].include, [{ email: { email: 'partner@kestrel.example.com' } }], 'the hub admits only the practice administrators');
   const hub = acct.st.workers.get('practice-hub').config;
-  assert.equal(hub.services.length, 4, 'one status binding per app');
-  assert.ok(hub.services.every(s => s.entrypoint === 'StatusService' && s.service.endsWith('-acme')));
+  assert.equal(hub.services.length, 8, 'a status binding and a ping binding per app');
+  assert.ok(hub.services.filter(s => s.entrypoint).every(s => s.entrypoint === 'StatusService' && s.service.endsWith('-acme')));
+  assert.ok(hub.services.filter(s => !s.entrypoint).every(s => s.binding.endsWith('_PING') && s.service.endsWith('-acme')));
   assert.equal(JSON.parse(hub.vars.CLIENTS)[0].name, 'Acme Super (fictional)');
   assert.ok(r.changed.length > 0 && r.client.apps.length === 4);
 });

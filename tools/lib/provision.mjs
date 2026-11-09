@@ -4,6 +4,7 @@
 // nothing. Side effects come in through `deps`, so the tests can run it against a fake Cloudflare account.
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
+import { pingBinding } from '../../lib/hub.js';
 
 export const STATUS_ENTRYPOINT = 'StatusService';
 
@@ -53,7 +54,8 @@ export function hubConfig(practice, clients) {
     preview_urls: false,
     assets: { directory: '../public', binding: 'ASSETS', run_worker_first: true },
     routes: [{ pattern: hubHost(practice), custom_domain: true }],
-    services: clients.flatMap(c => c.apps.map(a => ({ binding: a.binding, service: a.worker, entrypoint: STATUS_ENTRYPOINT }))),
+    services: clients.flatMap(c => c.apps.flatMap(a => [{ binding: a.binding, service: a.worker, entrypoint: STATUS_ENTRYPOINT },
+      { binding: pingBinding(a.binding), service: a.worker }])),
     vars: { PRACTICE_NAME: practice.name || '', HUB_ADMINS: practice.admins.map(e => e.toLowerCase()).join(','), CLIENTS: JSON.stringify(list) },
     observability: { enabled: true },
   };
