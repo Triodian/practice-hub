@@ -24,7 +24,7 @@
     }
     const s = a.status;
     // Add "(4 of 8)" only when the app's own label does not already say it.
-    const counted = s.stage.step != null && s.stage.steps && !new RegExp(`\\b${s.stage.step} of ${s.stage.steps}\\b`).test(s.stage.label || '');
+    const counted = s.stage.step > 0 && s.stage.steps && !new RegExp(`\\b${s.stage.step} of ${s.stage.steps}\\b`).test(s.stage.label || '');
     const stage = counted ? `${s.stage.label} (${s.stage.step} of ${s.stage.steps})` : s.stage.label || '—';
     const waiting = s.waitingOn.length ? s.waitingOn.map(w => `${w.role} ${w.actions}`).join(', ') : '';
     const next = s.nextSignOff ? `${s.nextSignOff.label}${s.nextSignOff.due ? ' · ' + day(s.nextSignOff.due) : ''}` : '—';

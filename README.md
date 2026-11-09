@@ -67,7 +67,7 @@ ids (`risk-appetite,use-assessment,confidentiality,board-direction`; Use Assessm
 `--code` is lowercase letters, digits and hyphens. Add `--dry-run` to see every step without changing anything.
 The [runbook](docs/runbook.md) has the full procedure and the checks after it.
 
-## The status contract (for task 4.1)
+## The status contract
 
 Each app exports a `StatusService` entrypoint with one method, `status()`, returning:
 
@@ -85,7 +85,9 @@ Each app exports a `StatusService` entrypoint with one method, `status()`, retur
 }
 ```
 
-Roles, not names; counts, not content. Dates are `YYYY-MM-DD`. An app that does not export the entrypoint yet shows
+Roles, not names; counts, not content. Dates are `YYYY-MM-DD`. An engagement nobody has started reports step 0,
+*Not started*. Since task 4.1 the four engagement apps export `StatusService` (each app's `lib/core/status.js` says
+what it counts); the Obligations Atlas has no engagement and is not bound. An app version without the entrypoint shows
 as *Not reporting yet*; one that fails or takes longer than three seconds shows as *Unreachable*.
 
 ## Developing
