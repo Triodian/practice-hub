@@ -74,6 +74,7 @@ test('a first run stands up the client: databases with the location hint, config
   assert.equal(ua.services[0].service, 'risk-appetite-acme', 'Use Assessment binds to this client\'s Risk Appetite');
   assert.equal(ua.vars.SUITE_COOKIE_DOMAIN, 'acme.kestrel.example.com', 'the sign-in cookie is scoped to this client alone');
   assert.equal(ua.vars.FIRST_ADMINS, 'gc@kestrel.example.com');
+  assert.equal(ua.vars.SUITE_SESSION_COOKIE, 'tri_suite_acme', 'its own cookie name, so a suite on a parent domain cannot shadow it');
   assert.equal(ua.vars.DEFAULT_SECTOR, 'AU-SUPERANNUATION');
   assert.ok(acct.st.access.some(a => a.domain === 'risk-appetite.acme.kestrel.example.com/auth/email'), 'email sign-in on each app');
   assert.ok(acct.st.workers.get('risk-appetite-acme').secrets.ACCESS_AUD, 'ACCESS_AUD set from the Access application');

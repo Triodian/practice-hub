@@ -23,7 +23,8 @@ hub.<practice domain>                          the hub (practice administrators 
 
 Each client has its own Workers (`<app>-<client>`), its own D1 databases (`<app>-<client>`, `triodian-identity-<client>`)
 and its own email sign-in. The suite's sign-in cookie is scoped to `<client>.<practice domain>`, so it is never sent to
-another client's apps. Databases are created with the location hint in `practice.json` (`oc`, Oceania, by default;
+another client's apps, and its name is the client's own (`tri_suite_<code>`), so a suite on a parent domain
+cannot shadow it. Databases are created with the location hint in `practice.json` (`oc`, Oceania, by default;
 a hint, not a guarantee: see the installer's [security answers](https://github.com/Triodian/triodian-install/blob/main/docs/security-answers.md)).
 
 The hub reads each app's status over a service binding when the page loads, and stores nothing. It keeps only the
