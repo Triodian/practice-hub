@@ -169,6 +169,8 @@ Afterwards:
 |---|---|---|
 | The command stops with a Cloudflare API error | Token lacks a permission, or has expired | Check the token's permissions against the README; run again. The run picks up where it stopped. |
 | *Unreachable* on the hub for one app | Its deployment failed, or the app is erroring | Run the provisioning command for that client and read the deploy output; check the Worker's logs in Cloudflare (Workers → `<app>-<code>` → Logs). |
+| *Unreachable* on every app of one kind, though the apps open | | The hub's logs (Workers → `practice-hub` → Logs) have a `status S_<CLIENT>_<APP>:` line for each app it could not read, with the reason. |
+| Signing in to the hub ends on another hostname that does not exist | The hub's Access application lists a hostname with no DNS record (a leftover from a hand setup) | Remove that hostname from the application in Zero Trust → Access → Applications. The tools keep any extra hostnames they find. |
 | *Not reporting yet* | The app's version predates the status report (task 4.1) | Nothing to fix; it reports once the app is updated (section 2). |
 | A client's administrator cannot sign in | Their email differs from `--admin`, or the one-time PIN went to spam | Check the email. If no administrator has signed in yet, rerun with the corrected `--admin`. Once one has, they add others in Admin; `--admin` no longer applies. |
 | A second run keeps redeploying an app | Its checkout has local changes, or the app's `main` moved | `git -C practice/apps/<app> status`; discard local changes. |

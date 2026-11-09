@@ -4,6 +4,7 @@
 // nothing. Side effects come in through `deps`, so the tests can run it against a fake Cloudflare account.
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
+import { pingBinding } from '../../lib/hub.js';
 
 export const STATUS_ENTRYPOINT = 'StatusService';
 
@@ -21,7 +22,9 @@ export const hubHost = practice => `hub.${practice.domain}`;
 
 export function checkInputs(practice, input, installer) {
   const errs = [];
-  if (!/^[a-z][a-z0-9]{1,19}$/.test(input.code || '')) errs.push('The client code is 2 to 20 lowercase letters and digits, starting with a letter.');
+  // Hyphens are allowed (test-a, c-014), but not at the end or twice in a row: the code is part of hostnames,
+  // Worker and database names, and the hub's binding names (where hyphens become underscores).
+  if (!/^[a-z](?:[a-z0-9]|-(?!-)){0,18}[a-z0-9]$/.test(input.code || '')) errs.push('The client code is 2 to 20 lowercase letters, digits and hyphens, starting with a letter and not ending with a hyphen.');
   if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(practice.domain || '')) errs.push('practice.json needs the practice\'s domain, on a zone in this Cloudflare account.');
   if (!/\.cloudflareaccess\.com$/.test(practice.teamDomain || '')) errs.push('practice.json needs the Zero Trust team domain (it ends in .cloudflareaccess.com).');
   if (!Array.isArray(practice.admins) || !practice.admins.length) errs.push('practice.json needs at least one hub administrator email in admins.');
@@ -51,7 +54,8 @@ export function hubConfig(practice, clients) {
     preview_urls: false,
     assets: { directory: '../public', binding: 'ASSETS', run_worker_first: true },
     routes: [{ pattern: hubHost(practice), custom_domain: true }],
-    services: clients.flatMap(c => c.apps.map(a => ({ binding: a.binding, service: a.worker, entrypoint: STATUS_ENTRYPOINT }))),
+    services: clients.flatMap(c => c.apps.flatMap(a => [{ binding: a.binding, service: a.worker, entrypoint: STATUS_ENTRYPOINT },
+      { binding: pingBinding(a.binding), service: a.worker }])),
     vars: { PRACTICE_NAME: practice.name || '', HUB_ADMINS: practice.admins.map(e => e.toLowerCase()).join(','), CLIENTS: JSON.stringify(list) },
     observability: { enabled: true },
   };
@@ -94,6 +98,11 @@ export async function provision(practice, input, deps) {
   // parent domain (the Triodian demo on triodian.com, or a practice's own) sets a cookie that browsers also send here;
   // a shared name would let that cookie shadow this client's and break sign-in.
   for (const m of made) m.config.vars = { ...m.config.vars, SUITE_SESSION_COOKIE: sessionCookie(input.code) };
+  // An app's base configuration binds to other apps of the suite (Board Direction and Use Assessment to Risk Appetite).
+  // Keep only the bindings to apps this client has: a binding to a Worker that does not exist stops the deploy, and the
+  // apps work without it (Board Direction says the link to Risk Appetite is not set up).
+  const workers = new Set(made.map(m => m.config.name));
+  for (const m of made) if (m.config.services) m.config.services = m.config.services.filter(b => workers.has(b.service));
   for (const m of made) {
     const text = JSON.stringify(m.config, null, 2) + '\n';
     if (fs.exists(m.file) && fs.read(m.file) === text) did(`configuration for ${m.app.name} unchanged`, false);
@@ -159,7 +168,12 @@ export async function updateHub(practice, deps, did) {
   const existing = await cf.accessFind(host);
   const admitted = existing && (existing.policies || []).flatMap(p => (p.include || []).map(i => i.email && i.email.email)).filter(Boolean).map(e => e.toLowerCase()).sort();
   if (!existing) { await cf.accessCreate(hubApp); did(`Access application for ${host} created`, true); }
-  else if (JSON.stringify(admitted) !== JSON.stringify(admins)) { await cf.accessUpdate(existing.id, hubApp); did(`Access policy for ${host} now admits ${admins.join(', ')}`, true); }
+  else if (JSON.stringify(admitted) !== JSON.stringify(admins)) {
+    // An application taken over from a hand setup may cover other hostnames too (hub-test.<domain>, say). Keep them,
+    // hub first: an update with the hub's domain alone would drop them, and leave them without Access in front.
+    const others = (existing.destinations || []).filter(d => !(d.type === 'public' && d.uri === host));
+    await cf.accessUpdate(existing.id, others.length ? { ...hubApp, destinations: [{ type: 'public', uri: host }, ...others] } : hubApp);
+    did(`Access policy for ${host} now admits ${admins.join(', ')}`, true); }
   else did(`Access application for ${host} admits the practice administrators`, false);
 
   const statePath = join(practice.stateDir, 'hub.json');
