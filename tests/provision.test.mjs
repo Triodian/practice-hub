@@ -158,3 +158,16 @@ test('a hyphenated client code provisions, and a second run changes nothing', as
   assert.ok(acct.st.workers.get('practice-hub').config.services.some(s => s.binding === 'S_TEST_A_BOARD_DIRECTION'));
   assert.deepEqual((await provision(practice, input, deps(practice, acct))).changed, []);
 });
+
+test('taking over a hand-made hub application keeps its other hostnames and replaces who it admits', async () => {
+  const { practice } = setup(), acct = fakeAccount();
+  acct.st.access.push({ id: 'hand', name: 'hub', domain: 'hub.kestrel.example.com', aud: 'aud-hand',
+    destinations: [{ type: 'public', uri: 'hub.kestrel.example.com' }, { type: 'public', uri: 'hub-test.kestrel.example.com' }],
+    policies: [{ name: 'Allow', decision: 'allow', include: [{ email: { email: 'someone@else.example.com' } }] }] });
+  const r = await provision(practice, acme, deps(practice, acct));
+  assert.ok(r.changed.includes('Access policy for hub.kestrel.example.com now admits partner@kestrel.example.com'));
+  const hub = acct.st.access.find(a => a.id === 'hand');
+  assert.deepEqual(hub.destinations.map(d => d.uri), ['hub.kestrel.example.com', 'hub-test.kestrel.example.com']);
+  assert.deepEqual(hub.policies[0].include, [{ email: { email: 'partner@kestrel.example.com' } }]);
+  assert.ok(!(await provision(practice, acme, deps(practice, acct))).changed.some(c => /Access/.test(c)), 'and a second run leaves it alone');
+});

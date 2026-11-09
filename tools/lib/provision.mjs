@@ -161,7 +161,12 @@ export async function updateHub(practice, deps, did) {
   const existing = await cf.accessFind(host);
   const admitted = existing && (existing.policies || []).flatMap(p => (p.include || []).map(i => i.email && i.email.email)).filter(Boolean).map(e => e.toLowerCase()).sort();
   if (!existing) { await cf.accessCreate(hubApp); did(`Access application for ${host} created`, true); }
-  else if (JSON.stringify(admitted) !== JSON.stringify(admins)) { await cf.accessUpdate(existing.id, hubApp); did(`Access policy for ${host} now admits ${admins.join(', ')}`, true); }
+  else if (JSON.stringify(admitted) !== JSON.stringify(admins)) {
+    // An application taken over from a hand setup may cover other hostnames too (hub-test.<domain>, say). Keep them,
+    // hub first: an update with the hub's domain alone would drop them, and leave them without Access in front.
+    const others = (existing.destinations || []).filter(d => !(d.type === 'public' && d.uri === host));
+    await cf.accessUpdate(existing.id, others.length ? { ...hubApp, destinations: [{ type: 'public', uri: host }, ...others] } : hubApp);
+    did(`Access policy for ${host} now admits ${admins.join(', ')}`, true); }
   else did(`Access application for ${host} admits the practice administrators`, false);
 
   const statePath = join(practice.stateDir, 'hub.json');
