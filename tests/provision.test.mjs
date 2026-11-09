@@ -136,6 +136,8 @@ test('recreating an app\'s Access application rotates its ACCESS_AUD, and only t
 test('bad inputs are refused before anything is touched', async () => {
   const { practice } = setup(), acct = fakeAccount();
   await assert.rejects(provision(practice, { ...acme, code: 'Bad Code' }, deps(practice, acct)), /client code/);
+  for (const code of ['test-', '-test', 'te--st', '1test', 'a'])
+    await assert.rejects(provision(practice, { ...acme, code }, deps(practice, acct)), /client code/, code);
   await assert.rejects(provision(practice, { ...acme, sector: 'SG-BANKING' }, deps(practice, acct)), /not a regulated sector of AU/);
   await assert.rejects(provision(practice, { ...acme, apps: 'nonsense' }, deps(practice, acct)), /Choose the apps/);
   assert.equal(acct.st.calls.length, 0);
@@ -147,4 +149,12 @@ test('the hub configuration is closed to the public internet except through its 
   assert.equal(c.workers_dev, false); assert.equal(c.preview_urls, false);
   assert.deepEqual(c.routes, [{ pattern: 'hub.p.example.com', custom_domain: true }]);
   assert.equal(c.assets.run_worker_first, true, 'the page itself is behind the administrator check');
+});
+
+test('a hyphenated client code provisions, and a second run changes nothing', async () => {
+  const { practice } = setup(), acct = fakeAccount(), input = { code: 'test-a', name: 'Test A (fictional)', apps: 'general', admin: 'gc@kestrel.example.com' };
+  await provision(practice, input, deps(practice, acct));
+  assert.ok(acct.st.workers.has('board-direction-test-a'));
+  assert.ok(acct.st.workers.get('practice-hub').config.services.some(s => s.binding === 'S_TEST_A_BOARD_DIRECTION'));
+  assert.deepEqual((await provision(practice, input, deps(practice, acct))).changed, []);
 });

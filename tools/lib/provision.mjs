@@ -21,7 +21,9 @@ export const hubHost = practice => `hub.${practice.domain}`;
 
 export function checkInputs(practice, input, installer) {
   const errs = [];
-  if (!/^[a-z][a-z0-9]{1,19}$/.test(input.code || '')) errs.push('The client code is 2 to 20 lowercase letters and digits, starting with a letter.');
+  // Hyphens are allowed (test-a, c-014), but not at the end or twice in a row: the code is part of hostnames,
+  // Worker and database names, and the hub's binding names (where hyphens become underscores).
+  if (!/^[a-z](?:[a-z0-9]|-(?!-)){0,18}[a-z0-9]$/.test(input.code || '')) errs.push('The client code is 2 to 20 lowercase letters, digits and hyphens, starting with a letter and not ending with a hyphen.');
   if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(practice.domain || '')) errs.push('practice.json needs the practice\'s domain, on a zone in this Cloudflare account.');
   if (!/\.cloudflareaccess\.com$/.test(practice.teamDomain || '')) errs.push('practice.json needs the Zero Trust team domain (it ends in .cloudflareaccess.com).');
   if (!Array.isArray(practice.admins) || !practice.admins.length) errs.push('practice.json needs at least one hub administrator email in admins.');
