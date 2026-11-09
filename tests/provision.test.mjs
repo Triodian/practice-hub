@@ -31,7 +31,11 @@ function fakeAccount() {
       const cfgFile = argv[argv.indexOf('-c') + 1], cfg = JSON.parse(readFileSync(cfgFile, 'utf8'));
       const w = st.workers.get(cfg.name) || { secrets: {}, deploys: 0 };
       if (argv[0] === 'secret') { w.secrets[argv[2]] = input; st.calls.push(`secret ${cfg.name} ${argv[2]}`); }
-      if (argv[0] === 'deploy') { w.deploys++; w.config = cfg; st.calls.push(`deploy ${cfg.name}`); }
+      if (argv[0] === 'deploy') {
+        // Like Cloudflare (code 10143): a service binding must name a Worker that exists.
+        const missing = (cfg.services || []).find(b => !st.workers.has(b.service));
+        if (missing) throw new Error(`Service binding '${missing.binding}' references Worker '${missing.service}' which was not found.`);
+        w.deploys++; w.config = cfg; st.calls.push(`deploy ${cfg.name}`); }
       st.workers.set(cfg.name, w);
     },
   };
@@ -53,7 +57,8 @@ function deps(practice, acct) {
     fetchApp: async (app, dir) => {
       if (existsSync(join(dir, 'wrangler.jsonc'))) return;
       mkdirSync(dir, { recursive: true });
-      const services = app.id === 'use-assessment' ? [{ binding: 'APPETITE', service: 'risk-appetite', entrypoint: 'AppetiteService' }] : [];
+      // Use Assessment and Board Direction both bind to Risk Appetite, as the real apps do.
+      const services = ['use-assessment', 'board-direction'].includes(app.id) ? [{ binding: 'APPETITE', service: 'risk-appetite', entrypoint: 'AppetiteService' }] : [];
       writeFileSync(join(dir, 'wrangler.jsonc'), JSON.stringify({ name: app.worker, main: 'src/worker.js', compatibility_date: '2026-10-01',
         env: { client: { vars: { NOTIFY_SENDING: 'off' }, services: services.map(s => ({ ...s, service: s.service + '-client' })) } } }));
     },
@@ -170,4 +175,12 @@ test('taking over a hand-made hub application keeps its other hostnames and repl
   assert.deepEqual(hub.destinations.map(d => d.uri), ['hub.kestrel.example.com', 'hub-test.kestrel.example.com']);
   assert.deepEqual(hub.policies[0].include, [{ email: { email: 'partner@kestrel.example.com' } }]);
   assert.ok(!(await provision(practice, acme, deps(practice, acct))).changed.some(c => /Access/.test(c)), 'and a second run leaves it alone');
+});
+
+test('an app is not bound to an app the client does not have', async () => {
+  const { practice } = setup(), acct = fakeAccount();
+  await provision(practice, { code: 'harrow', name: 'Harrow Valley Foods (fictional)', apps: 'general', admin: 'gc@kestrel.example.com' }, deps(practice, acct));
+  assert.deepEqual(acct.st.workers.get('board-direction-harrow').config.services, [], 'no Risk Appetite, so no APPETITE binding');
+  await provision(practice, acme, deps(practice, acct));
+  assert.deepEqual(acct.st.workers.get('board-direction-acme').config.services.map(b => b.service), ['risk-appetite-acme'], 'a regulated client keeps it');
 });

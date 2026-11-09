@@ -96,6 +96,11 @@ export async function provision(practice, input, deps) {
   // parent domain (the Triodian demo on triodian.com, or a practice's own) sets a cookie that browsers also send here;
   // a shared name would let that cookie shadow this client's and break sign-in.
   for (const m of made) m.config.vars = { ...m.config.vars, SUITE_SESSION_COOKIE: sessionCookie(input.code) };
+  // An app's base configuration binds to other apps of the suite (Board Direction and Use Assessment to Risk Appetite).
+  // Keep only the bindings to apps this client has: a binding to a Worker that does not exist stops the deploy, and the
+  // apps work without it (Board Direction says the link to Risk Appetite is not set up).
+  const workers = new Set(made.map(m => m.config.name));
+  for (const m of made) if (m.config.services) m.config.services = m.config.services.filter(b => workers.has(b.service));
   for (const m of made) {
     const text = JSON.stringify(m.config, null, 2) + '\n';
     if (fs.exists(m.file) && fs.read(m.file) === text) did(`configuration for ${m.app.name} unchanged`, false);
