@@ -5,6 +5,9 @@ import { join, resolve, dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { cloudflare } from './cloudflare.mjs';
 
+/** Quotes one argument for cmd.exe: plain words as they are, anything else in double quotes. */
+export const winQuote = a => (/^[\w@%+=:,./\\-]+$/.test(a) ? a : `"${String(a).replace(/"/g, '""')}"`);
+
 export function parseArgs(argv) {
   const o = { _: [] };
   for (let i = 0; i < argv.length; i++) {
@@ -36,7 +39,10 @@ export function realDeps({ dry, log }) {
   const run = (cmd, argv, opts = {}) => {
     say(`  $ ${cmd} ${argv.map(x => /\s/.test(x) ? JSON.stringify(x) : x).join(' ')}`);
     if (dry) return '';
-    return execFileSync(cmd, argv, { encoding: 'utf8', stdio: [opts.input === undefined ? 'ignore' : 'pipe', 'pipe', 'inherit'], ...opts });
+    const o = { encoding: 'utf8', stdio: [opts.input === undefined ? 'ignore' : 'pipe', 'pipe', 'inherit'], ...opts };
+    // On Windows npx is npx.cmd, which Node starts only through a shell; arguments are quoted for cmd.exe.
+    if (process.platform === 'win32') return execFileSync([cmd, ...argv].map(winQuote).join(' '), { ...o, shell: true });
+    return execFileSync(cmd, argv, o);
   };
   const cf = cloudflare({ token: process.env.CLOUDFLARE_API_TOKEN, accountId: process.env.CLOUDFLARE_ACCOUNT_ID, dry, log: say });
   return {
@@ -52,7 +58,7 @@ export function realDeps({ dry, log }) {
     fs: {
       exists: p => existsSync(p),
       read: p => readFileSync(p, 'utf8'),
-      write: (p, t) => { if (dry && !/wrangler\.[a-z0-9]+\.json$|\.provisioned/.test(p)) { say(`  (dry run) would write ${p}`); return; } writeFileSync(p, t); },
+      write: (p, t) => { if (dry && !/wrangler\.[a-z0-9-]+\.json$|\.provisioned/.test(p)) { say(`  (dry run) would write ${p}`); return; } writeFileSync(p, t); },
       list: p => readdirSync(p),
       mkdir: p => mkdirSync(p, { recursive: true }),
     },
