@@ -62,6 +62,10 @@ node tools/provision-client.mjs --code acme --name "Acme Super" --apps regulated
   --admin gc@firm.com.au --jurisdiction AU --sector AU-SUPERANNUATION
 ```
 
+From a Triodian Start request, the job file gives all of that and the people with their roles:
+`node tools/provision-client.mjs --job triodian-job-acme.json`. The people are added to the client's apps and a
+result file is written to upload in Start, which then sends the invitations (runbook, "From a Start request").
+
 `--apps` is `general` (AI Board Direction and AI Confidentiality Exposure), `regulated` (all four), or a list of app
 ids (`risk-appetite,use-assessment,confidentiality,board-direction`; Use Assessment brings Risk Appetite with it).
 `--code` is lowercase letters, digits and hyphens. Add `--dry-run` to see every step without changing anything.
@@ -97,7 +101,7 @@ npm test           # unit tests: status filter, administrator check, provisionin
 npm run dev:e2e    # the hub at http://localhost:8790 with three fictional clients (stub apps)
 ```
 
-The tests need triodian-install beside this repo (or `INSTALL_DIR`). Nothing here talks to Cloudflare except the two
+The tests need triodian-install beside this repo (or `INSTALL_DIR`) and Node 22.13 or later (they use its built-in SQLite; the tools themselves run on Node 20). Nothing here talks to Cloudflare except the two
 tools in `tools/`.
 
 ## Licence
