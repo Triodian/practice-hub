@@ -63,6 +63,39 @@ It ends by listing the app addresses. Certificates for new hostnames can take a 
       4.1). *Unreachable* means the deployment failed: see section 6.
 - [ ] Back up `practice/` (it holds the client records and is not in git).
 
+### From a Start request
+
+When an organisation signs up in Triodian Start, forms its team and asks to start, a Triodian administrator approves
+the request in Start (**Requests**). Approval makes a job file: the client's code, name, apps and first
+administrator, and every person with their roles in each app. It holds no password or token.
+
+1. In Start, open the request, approve it and choose **Download the job file** (`triodian-job-<code>.json`).
+2. On this computer, with the token set as above, see every step first, then run it:
+
+   ```
+   node tools/provision-client.mjs --job triodian-job-<code>.json --dry-run
+   node tools/provision-client.mjs --job triodian-job-<code>.json
+   ```
+
+   It does everything the command above does, then adds the people to the client's identity database
+   (`triodian-identity-<code>`) with their roles, the way each app's Admin would. The first administrator is made an
+   administrator of every app. It only adds: a person already there keeps their name, roles and on or off state, and
+   gains any role the job gives them that they lack. A role the apps do not have stops the run before anything is
+   created.
+3. The command writes `triodian-job-<code>.result.json` beside the job file. In Start, on the same request, choose
+   the result file. Start marks the client set up and shows the invitations.
+4. In Start, send the invitations. Each person gets one email with their roles and the address of each app.
+
+**Check**, as well as the checks above:
+
+- [ ] Run the same command again. It says *Nothing changed*.
+- [ ] In one app's Admin, the people are listed with the roles the client and Triodian gave them.
+- [ ] Someone on the team who is not an administrator can sign in and sees only what their role allows.
+
+Keep the job and result files with the client record in `practice/`; they name the client's people. For a client who
+chose a registered practitioner, the job file goes to that practitioner, who runs it in their own account the same
+way and sends the result file back.
+
 ## 2. Updating the apps
 
 Run the provisioning command again for each client, with the same answers. It pulls each app's `main`, and deploys

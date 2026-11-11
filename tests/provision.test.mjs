@@ -9,17 +9,22 @@ import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { provision, hubConfig, bindingFor, checkInputs } from '../tools/lib/provision.mjs';
 import { loadInstaller } from '../tools/lib/runtime.mjs';
+import { DatabaseSync } from 'node:sqlite';
+import { readJob } from '../tools/lib/people.mjs';
+import { IDENTITY_SCHEMA, SUITE_APPS } from './fixtures/identity.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const installer = await loadInstaller(process.env.INSTALL_DIR || resolve(HERE, '../../triodian-install'));
 
 /** An in-memory Cloudflare account that records every change. */
 function fakeAccount() {
-  const st = { d1: [], access: [], workers: new Map(), calls: [] };
+  const st = { d1: [], access: [], workers: new Map(), calls: [], dbs: new Map() };
   return {
     st,
     cf: {
       async d1Find(name) { return st.d1.find(d => d.name === name) || null; },
+      // Each database is a real SQLite one, so the statements that add people are the ones D1 runs.
+      async d1Query(id, sql, params = []) { if (!st.dbs.has(id)) st.dbs.set(id, new DatabaseSync(':memory:')); const q = st.dbs.get(id).prepare(sql); if (/^\s*SELECT/i.test(sql)) return q.all(...params); if (!/^\s*CREATE/i.test(sql)) st.calls.push(`d1Query ${sql.trim().split(/\s+/).slice(0, 3).join(' ')}`); q.run(...params); return []; },
       async d1Create(name, hint) { st.calls.push(`d1Create ${name} ${hint}`); const d = { name, uuid: `id-${name}`, hint }; st.d1.push(d); return d.uuid; },
       async accessUpdate(id, body) { st.calls.push(`accessUpdate ${body.domain}`); Object.assign(st.access.find(a => a.id === id), body); },
       async accessFind(domain) { return st.access.find(a => a.domain === domain) || null; },
@@ -54,6 +59,7 @@ function deps(practice, acct) {
     cf: acct.cf, installer, today: () => '2026-11-08', log: () => {},
     wrangler: (cwd, argv, input) => acct.wrangler(cwd, argv, input),
     gitHead: () => 'commit-1',
+    identity: async () => ({ schema: IDENTITY_SCHEMA, apps: SUITE_APPS }),
     fetchApp: async (app, dir) => {
       if (existsSync(join(dir, 'wrangler.jsonc'))) return;
       mkdirSync(dir, { recursive: true });
@@ -184,4 +190,40 @@ test('an app is not bound to an app the client does not have', async () => {
   assert.deepEqual(acct.st.workers.get('board-direction-harrow').config.services, [], 'no Risk Appetite, so no APPETITE binding');
   await provision(practice, acme, deps(practice, acct));
   assert.deepEqual(acct.st.workers.get('board-direction-acme').config.services.map(b => b.service), ['risk-appetite-acme'], 'a regulated client keeps it');
+});
+
+// From a Triodian Start job (task 5.6): the people in the job are added to the client's identity database.
+const startJob = () => readJob({ format: 'triodian.provisionJob/1', requestId: 'P-1234abcd', code: 'quay', name: 'Quay Logistics (fictional)', apps: 'board-direction,confidentiality', admin: 'zed@quay.example', jurisdiction: 'AU', sector: '',
+  people: [{ email: 'zed@quay.example', name: 'Zed', organisation: 'Quay Logistics', admin: true, apps: { 'board-direction': ['chair'], confidentiality: [] } },
+    { email: 'mo.owner@triodian.com', name: 'Mo Owner', organisation: 'Triodian', admin: false, apps: { 'board-direction': ['methodOwner'], confidentiality: ['methodOwner', 'assessor'] } }] });
+
+test('a Start job stands the client up and adds its people with their roles; a second run changes nothing', async () => {
+  const { practice } = setup(), acct = fakeAccount();
+  const r = await provision(practice, startJob(), deps(practice, acct));
+  assert.equal(r.people, 2);
+  assert.equal(acct.st.workers.get('board-direction-quay')?.deploys, 1);
+  assert.ok(!acct.st.workers.has('risk-appetite-quay'));
+  const idb = acct.st.dbs.get('id-triodian-identity-quay');
+  assert.ok(idb, 'the people go to this client\'s identity database and no other');
+  assert.equal(acct.st.dbs.size, 1);
+  const rows = idb.prepare('SELECT p.email, m.app, m.roles, m.is_admin FROM memberships m JOIN people p ON p.id = m.person_id ORDER BY p.email, m.app').all().map(x => ({ ...x }));
+  assert.deepEqual(rows, [
+    { email: 'mo.owner@triodian.com', app: 'board-direction', roles: 'methodOwner', is_admin: 0 }, { email: 'mo.owner@triodian.com', app: 'confidentiality', roles: 'methodOwner,assessor', is_admin: 0 },
+    { email: 'zed@quay.example', app: 'board-direction', roles: 'chair', is_admin: 1 }, { email: 'zed@quay.example', app: 'confidentiality', roles: '', is_admin: 1 }]);
+  assert.ok(r.changed.includes('zed@quay.example joined board-direction as chair (administrator)'));
+  assert.equal(acct.st.workers.get('board-direction-quay').config.vars.FIRST_ADMINS, 'zed@quay.example');
+  const callsBefore = acct.st.calls.length;
+  const again = await provision(practice, startJob(), deps(practice, acct));
+  assert.deepEqual(again.changed, [], 'no change reported');
+  assert.equal(acct.st.calls.length, callsBefore, 'no call that changes anything, in Cloudflare or the database');
+});
+
+test('a job naming a role the apps do not have is refused before anything is created', async () => {
+  const { practice } = setup(), acct = fakeAccount(), j = startJob();
+  j.people[1].apps['board-direction'] = ['wizard'];
+  await assert.rejects(provision(practice, j, deps(practice, acct)), /board-direction has no role wizard/);
+  assert.equal(acct.st.calls.length, 0, 'nothing was created');
+  j.people[1].apps = { 'risk-appetite': ['cro'] };
+  await assert.rejects(provision(practice, j, deps(practice, acct)), /risk-appetite, which is not one of this client's apps/);
+  assert.equal(acct.st.calls.length, 0);
 });

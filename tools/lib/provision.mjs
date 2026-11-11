@@ -5,6 +5,7 @@
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { pingBinding } from '../../lib/hub.js';
+import { seedPeople, peopleErrors } from './people.mjs';
 
 export const STATUS_ENTRYPOINT = 'StatusService';
 
@@ -63,7 +64,8 @@ export function hubConfig(practice, clients) {
 
 /**
  * Provision one client. Returns { changed: [...], unchanged: [...], client } where each entry is a short line.
- * deps: { cf, wrangler(cwd, argv, input?), gitHead(dir), fetchApp(app, dir), fs: { exists, read, write, list, mkdir },
+ * input.people (from a Start job file, tools/lib/people.mjs) are added to the client's identity database with their roles.
+ * deps: { cf, wrangler(cwd, argv, input?), gitHead(dir), fetchApp(app, dir), identity(appDir), fs: { exists, read, write, list, mkdir },
  *         installer: { APPS, appsFor, SECTORS, clientConfig }, log, today }
  */
 export async function provision(practice, input, deps) {
@@ -82,6 +84,13 @@ export async function provision(practice, input, deps) {
   fs.mkdir(appsDir);
   const head = {};
   for (const app of apps) { await deps.fetchApp(app, join(appsDir, app.dir)); head[app.id] = deps.gitHead(join(appsDir, app.dir)); }
+  // People from a Start job (task 5.6) are checked against the apps' own role names before anything is changed.
+  let identity = null;
+  if (input.people && input.people.length) {
+    identity = await deps.identity(join(appsDir, apps[0].dir));
+    const bad = peopleErrors(input.people, apps.map(x => x.id), identity.apps);
+    if (bad.length) throw new Error(bad.join('\n'));
+  }
 
   log('· The databases (location hint ' + (practice.locationHint || 'none') + ')');
   const ids = {};
@@ -134,6 +143,15 @@ export async function provision(practice, input, deps) {
     deployed[m.app.id] = fp; did(`${m.config.name} deployed`, true);
   }
 
+  let peopleAdded = null;
+  if (identity) {
+    log('· The people and their roles (the client\'s identity database)');
+    const r = await seedPeople((sql, params) => cf.d1Query(ids.identity, sql, params), input.people, { schema: identity.schema, now: deps.now ? deps.now() : undefined });
+    r.changed.forEach(line => did(line, true));
+    if (!r.changed.length) did(`all ${input.people.length} people already have their roles`, false);
+    peopleAdded = input.people.length;
+  }
+
   const client = {
     code, name: input.name || (before && before.name) || code, profile: input.apps, domain,
     jurisdiction: a.jurisdiction, sector: a.sector, admin: a.firstAdmins[0],
@@ -146,7 +164,7 @@ export async function provision(practice, input, deps) {
   else did(`client record ${code} unchanged`, false);
 
   await updateHub(practice, deps, did);
-  return { changed, unchanged, client };
+  return { changed, unchanged, client, people: peopleAdded };
 }
 
 /** Brings the hub up to date with every client record: its configuration, its Access application and its deployment. */

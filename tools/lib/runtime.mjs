@@ -54,6 +54,13 @@ export function realDeps({ dry, log }) {
       if (existsSync(join(dir, '.git'))) execFileSync('git', ['-C', dir, 'pull', '--ff-only', '-q'], { stdio: 'inherit' });
       else execFileSync('git', ['clone', '-q', '--depth', '1', `https://github.com/Triodian/${app.repo}.git`, dir], { stdio: 'inherit' });
     },
+    /** The identity database's tables and the apps' role names, from an app checkout (the same file is in every app). */
+    identity: async dir => {
+      const file = join(dir, 'lib', 'identity', 'people.js');
+      if (!existsSync(file)) throw new Error(`${file} was not found, so people cannot be added. Update the app checkouts and try again.`);
+      const m = await import(pathToFileURL(file).href);
+      return { schema: m.IDENTITY_SCHEMA, apps: m.SUITE_APPS };
+    },
     gitHead: dir => { try { return execFileSync('git', ['-C', dir, 'rev-parse', 'HEAD'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(); } catch (e) { return 'no-git'; } },
     fs: {
       exists: p => existsSync(p),
