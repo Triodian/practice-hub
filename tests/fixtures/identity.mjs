@@ -16,7 +16,7 @@ export const SUITE_APPS = [
       "gc": "General counsel (client)",
       "triodian": "Triodian (recorder)",
       "cro": "CRO",
-      "risk": "Risk function",
+      "risk": "Risk or AI governance function",
       "independent": "Independent reviewer",
       "board": "Board record"
     }
@@ -35,7 +35,9 @@ export const SUITE_APPS = [
       "owner": "Arrangement owner (client)",
       "ir": "Independent reviewer",
       "cro": "CRO (client)",
-      "executive": "Second approver (company executive)"
+      "executive": "Second approver (company executive)",
+      "technologyOwner": "Technology owner (company)",
+      "aiGovernance": "AI governance team (company)"
     }
   },
   {
@@ -67,7 +69,9 @@ export const SUITE_APPS = [
       "director": "Director (board)",
       "ceo": "CEO or accountable executive (company)",
       "cro": "CRO (company, connected mode)",
-      "areaOwner": "Area owner (company)"
+      "areaOwner": "Area owner (company)",
+      "technologyOwner": "Technology owner (company)",
+      "aiGovernance": "AI governance team (company)"
     }
   }
 ];
