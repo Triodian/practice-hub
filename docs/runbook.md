@@ -103,6 +103,8 @@ only the apps whose code or configuration changed. Run it for one client first, 
 
 To see what would change without deploying, add `--dry-run`.
 
+**Baseline packs and new jurisdictions.** The [best-practice baseline](https://github.com/Triodian/Triodian_Metamodel/blob/main/docs/baselines.md) packs come with each app's `main`, so updating the apps as above brings every client the current baselines and the four baseline controls; nothing in a client's data changes until someone chooses a pack at set-up. A client in a jurisdiction the suite does not yet cover can use a baseline straight away. To add the jurisdiction itself, follow [adding a jurisdiction](https://github.com/Triodian/Triodian_Metamodel/blob/main/docs/adding-a-jurisdiction.md), then update the apps for each client as above.
+
 ## 3. Rotating keys and API tokens
 
 | What | Where it lives | How often | How |
