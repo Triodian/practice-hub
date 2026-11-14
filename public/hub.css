@@ -34,3 +34,12 @@ td a:hover { color: var(--violet); }
   .rtable td { display: block; border: 0; padding: 0.2rem 0; }
   .rtable td::before { content: attr(data-label); display: block; font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--violet); }
 }
+
+/* What the suite covers, and help and support (development plan task BP.7) */
+.guide{margin-top:28px;margin-bottom:8px}
+.guide h2{font-size:20px;margin:0 0 10px}
+.guide-list{margin:0 0 12px;padding-left:18px}
+.guide-list li{margin:0 0 8px;line-height:1.5}
+.guide-h{font-size:15px;margin:14px 0 6px}
+.guide-links{margin:0;padding-left:18px}
+.guide-links li{margin:0 0 4px}

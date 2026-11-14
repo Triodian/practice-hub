@@ -10,6 +10,7 @@ For an adviser who runs the Triodian app suite for several clients: a law firm, 
   the next board date. It holds no client content.
 - **The runbook** ([docs/runbook.md](docs/runbook.md)). Provisioning, rotating keys and API tokens, changing the
   practice administrators, and closing a client: archiving its data, then destroying it.
+- **What the suite covers** (development plan task BP.7). The hub page closes with the main sectors in each jurisdiction, the [best-practice baselines](https://github.com/Triodian/Triodian_Metamodel/blob/main/docs/baselines.md) and their four controls, the accountable authority for public-body clients, [adding a jurisdiction](https://github.com/Triodian/Triodian_Metamodel/blob/main/docs/adding-a-jurisdiction.md), and links to the runbook, the security answers and privacy notice for clients' due diligence, and Support the project.
 
 It builds on [Triodian/triodian-install](https://github.com/Triodian/triodian-install), which writes each app's
 configuration; this repo adds the per-client layout, the Cloudflare resources and the hub.
