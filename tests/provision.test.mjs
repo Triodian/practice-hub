@@ -40,7 +40,7 @@ function fakeAccount() {
         // Like Cloudflare (code 10143): a service binding must name a Worker that exists.
         const missing = (cfg.services || []).find(b => !st.workers.has(b.service));
         if (missing) throw new Error(`Service binding '${missing.binding}' references Worker '${missing.service}' which was not found.`);
-        w.deploys++; w.config = cfg; st.calls.push(`deploy ${cfg.name}`); }
+        w.deploys++; w.config = cfg; w.vars = Object.fromEntries(argv.filter((a, i) => argv[i - 1] === '--var').map(v => v.split(/:(.*)/s).slice(0, 2))); st.calls.push(`deploy ${cfg.name}`); }
       st.workers.set(cfg.name, w);
     },
   };
@@ -113,6 +113,9 @@ test('a new app version is deployed on the next run, and nothing else changes', 
   await provision(practice, acme, d);
   const r = await provision(practice, acme, { ...d, gitHead: dir => (dir.includes('board-direction') ? 'commit-2' : 'commit-1') });
   assert.deepEqual(r.changed, ['board-direction-acme deployed', 'client record acme saved']);
+  // The deployed commit travels with the deploy (development plan P.14), so the app answers /api/version with it.
+  assert.equal(acct.st.workers.get('board-direction-acme').vars.APP_COMMIT, 'commit-2');
+  assert.equal(acct.st.workers.get('risk-appetite-acme').vars.APP_COMMIT, 'commit-1');
 });
 
 test('a second client sits beside the first, and the hub lists both', async () => {
