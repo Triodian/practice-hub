@@ -100,6 +100,9 @@ way and sends the result file back.
 
 Run the provisioning command again for each client, with the same answers. It pulls each app's `main`, and deploys
 only the apps whose code or configuration changed. Run it for one client first, check that client, then the rest.
+Each deploy carries the commit it was made from: `curl -sI https://<app>.<code>.<domain>/login | grep X-Triodian-Release`
+shows it (or `GET /api/version`), which is how an installed version is recorded. Note that this path deploys each
+app's `main`, not the releases pinned in the installer's `releases.json`; `main` is always at or past those pins.
 
 To see what would change without deploying, add `--dry-run`.
 

@@ -139,7 +139,9 @@ export async function provision(practice, input, deps) {
   for (const m of made) {
     const fp = hash([head[m.app.id], m.config]);
     if (deployed[m.app.id] === fp && await cf.workerExists(m.config.name)) { did(`${m.config.name} already deployed at this version`, false); continue; }
-    deps.wrangler(join(appsDir, m.app.dir), ['deploy', '-c', m.file]);
+    // The commit deployed, on every response as X-Triodian-Release and at /api/version (development plan P.14), so a
+    // client deployment's installed version is one request to read, as it is for the gated workflow's deploys.
+    deps.wrangler(join(appsDir, m.app.dir), ['deploy', '-c', m.file, '--var', `APP_COMMIT:${head[m.app.id]}`]);
     deployed[m.app.id] = fp; did(`${m.config.name} deployed`, true);
   }
 
